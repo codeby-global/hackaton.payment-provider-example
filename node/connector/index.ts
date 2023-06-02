@@ -14,8 +14,8 @@ import {
 } from '@vtex/payment-provider'
 import { VBase } from '@vtex/api'
 
-import { randomString } from './utils'
-import { executeAuthorization } from './flow'
+import { randomString } from '../utils'
+import { executeAuthorization } from '../flow'
 
 const authorizationsBucket = 'authorizations'
 const persistAuthorizationResponse = async (
