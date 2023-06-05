@@ -32,6 +32,7 @@ import {
   GETNET_REFUND_BUCKET,
   GETNET_REQUEST_BUCKET,
 } from '../utils/constants'
+import { getnetService } from '../services/getnetService'
 
 const APP_ID = process.env.VTEX_APP_ID as string
 
