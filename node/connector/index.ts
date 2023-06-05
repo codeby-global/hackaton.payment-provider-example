@@ -28,6 +28,7 @@ import { Clients } from '../clients'
 import {
   GETNET_AUTHORIZATION_BUCKET,
   GETNET_CANCELLATION_BUCKET,
+  GETNET_CAPTURE_BUCKET,
   GETNET_REFUND_BUCKET,
   GETNET_REQUEST_BUCKET,
 } from '../utils/constants'
@@ -384,7 +385,101 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       return Settlements.deny(settlement)
     }
 
-    throw new Error('Not implemented')
+    const {
+      clients: { getnet, vbase },
+      vtex: { logger },
+    } = this.context
+
+    const existingSettlement = await vbase.getJSON<any | null>(
+      GETNET_CAPTURE_BUCKET,
+      `${settlement.paymentId}-${settlement.value}`,
+      TRUE_NULL_IF_NOT_FOUND
+    )
+
+    logger.info({
+      message: 'connectorGetnet-settleRequest',
+      data: { settlement, existingSettlement },
+    })
+
+    if (existingSettlement) {
+      if (existingSettlement.notification) {
+        const [
+          {
+            NotificationRequestItem: {
+              pspReference,
+              eventCode,
+              reason,
+              success,
+            },
+          },
+        ] = existingSettlement.notification.notificationItems
+
+        if (success === 'true') {
+          return Settlements.approve(settlement, {
+            settleId: pspReference,
+          })
+        }
+
+        return Settlements.deny(settlement, {
+          code: eventCode,
+          message: reason,
+        })
+      }
+
+      return {
+        ...settlement,
+        code: null,
+        message: null,
+        settleId: null,
+      }
+    }
+
+    vbase.saveJSON<any>(
+      GETNET_CAPTURE_BUCKET,
+      `${settlement.paymentId}-${settlement.value}`,
+      { notification: null }
+    )
+
+    const getnetAuth = await vbase.getJSON<any | null>(
+      GETNET_AUTHORIZATION_BUCKET,
+      settlement.paymentId,
+      TRUE_NULL_IF_NOT_FOUND
+    )
+
+    if (!getnetAuth) {
+      logger.error({
+        message: 'connectorGetnet-settleError-getnetAuthNotFound',
+        data: { settlement, getnetAuth },
+      })
+
+      throw new Error('Missing transaction data')
+    }
+
+    const getnetCaptureRequest = await getnetService.buildCaptureRequest({
+      ctx: this.context,
+      settlement,
+      authorization: getnetAuth,
+    })
+
+    try {
+      await getnet.capture(getnetCaptureRequest)
+    } catch (error) {
+      logger.error({
+        error,
+        message: 'connectorGetnet-getnetSettleRequestError',
+        data: {
+          pspReference: getnetCaptureRequest.pspReference,
+          request: getnetCaptureRequest.data,
+        },
+      })
+    }
+
+    return {
+      ...settlement,
+      code: null,
+      message: null,
+      settleId: null,
+    }
   }
 
   public inbound: undefined
