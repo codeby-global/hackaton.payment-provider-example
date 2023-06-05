@@ -28,6 +28,7 @@ import { Clients } from '../clients'
 import {
   GETNET_AUTHORIZATION_BUCKET,
   GETNET_CANCELLATION_BUCKET,
+  GETNET_REFUND_BUCKET,
   GETNET_REQUEST_BUCKET,
 } from '../utils/constants'
 
@@ -279,7 +280,101 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       return Refunds.deny(refund)
     }
 
-    throw new Error('Not implemented')
+    const {
+      clients: { getnet, vbase },
+      vtex: { logger },
+    } = this.context
+
+    const existingRefund = await vbase.getJSON<any | null>(
+      GETNET_REFUND_BUCKET,
+      `${refund.paymentId}-${refund.value}`,
+      TRUE_NULL_IF_NOT_FOUND
+    )
+
+    logger.info({
+      message: 'connectorGetnet-refundRequest',
+      data: { refund, existingRefund },
+    })
+
+    if (existingRefund) {
+      if (existingRefund.notification) {
+        const [
+          {
+            NotificationRequestItem: {
+              pspReference,
+              eventCode,
+              reason,
+              success,
+            },
+          },
+        ] = existingRefund.notification.notificationItems
+
+        if (success === 'true') {
+          return Refunds.approve(refund, {
+            refundId: pspReference,
+          })
+        }
+
+        return Refunds.deny(refund, {
+          code: eventCode,
+          message: reason,
+        })
+      }
+
+      return {
+        ...refund,
+        refundId: null,
+        code: null,
+        message: null,
+      }
+    }
+
+    vbase.saveJSON<any>(
+      GETNET_REFUND_BUCKET,
+      `${refund.paymentId}-${refund.value}`,
+      { notification: null }
+    )
+
+    const getnetAuth = await vbase.getJSON<any | null>(
+      GETNET_AUTHORIZATION_BUCKET,
+      refund.paymentId,
+      TRUE_NULL_IF_NOT_FOUND
+    )
+
+    if (!getnetAuth) {
+      logger.error({
+        message: 'connectorGetnet-refundError-GetnetAuthNotFound',
+        data: { refund },
+      })
+
+      throw new Error('Missing transaction data')
+    }
+
+    const refundRequest = await getnetService.buildRefundRequest({
+      ctx: this.context,
+      refund,
+      authorization: getnetAuth,
+    })
+
+    try {
+      await getnet.refund(refundRequest)
+    } catch (error) {
+      logger.error({
+        error,
+        message: 'connectorGetnetRefundTequestError',
+        data: {
+          pspReference: refundRequest.pspReference,
+          request: refundRequest.data,
+        },
+      })
+    }
+
+    return {
+      ...refund,
+      refundId: null,
+      code: null,
+      message: null,
+    }
   }
 
   public async settle(
