@@ -250,7 +250,7 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       await getnet.cancel(
         cancellation.authorizationId,
         {
-          merchantAccount: settings.getnetBackofficeClientId,
+          merchantAccount: settings.getnetTransationalClientId,
           reference: cancellation.paymentId,
         },
         settings
@@ -262,7 +262,7 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
         data: {
           pspReference: cancellation.authorizationId,
           request: {
-            merchantAccount: settings.getnetBackofficeClientId,
+            merchantAccount: settings.getnetTransationalClientId,
             reference: cancellation.paymentId,
           },
         },

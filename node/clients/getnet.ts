@@ -18,7 +18,7 @@ export default class Getnet extends ExternalClient {
       data,
       {
         headers: {
-          'X-API-Key': settings.getnetBackofficeClientId,
+          'X-API-Key': settings.getnetTransationalClientId,
           'X-Vtex-Use-Https': 'true',
           'Content-Type': 'application/json',
         },
@@ -34,7 +34,7 @@ export default class Getnet extends ExternalClient {
   ): Promise<AdyenCancelResponse | null> {
     return this.http.post(`/v67/payments/${pspReference}/cancels`, data, {
       headers: {
-        'X-API-Key': appSettings.getnetBackofficeClientId,
+        'X-API-Key': appSettings.getnetTransationalClientId,
         'X-Vtex-Use-Https': 'true',
         'Content-Type': 'application/json',
       },
@@ -53,7 +53,7 @@ export default class Getnet extends ExternalClient {
       data,
       {
         headers: {
-          'X-API-Key': settings.getnetBackofficeClientId,
+          'X-API-Key': settings.getnetTransationalClientId,
           'X-Vtex-Use-Https': 'true',
           'Content-Type': 'application/json',
         },

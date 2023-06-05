@@ -27,5 +27,19 @@
       }
     }
   ],
+  "settingsSchema": {
+    "title": "UseInsider",
+    "type": "object",
+    "properties": {
+      "getnetTransationalClientId": {
+        "title": "Getnet Transational Client ID",
+        "type": "string"
+      },
+      "getnetTransationalSecretId": {
+        "title": "Getnet Transational Secret ID",
+        "type": "string"
+      }
+    }
+  },
   "$schema": "https://raw.githubusercontent.com/vtex/node-vtex-api/master/gen/manifest.schema"
 }
