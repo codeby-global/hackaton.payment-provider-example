@@ -1,6 +1,7 @@
 import type { ClientsConfig } from '@vtex/api'
 import { IOClients, LRUCache } from '@vtex/api'
-import Provider from './provider'
+
+import Getnet from './getnet'
 
 const TWO_RETRIES = 2
 const TIMEOUT_MS = 15000
@@ -16,8 +17,8 @@ const cacheStorage = new LRUCache<string, any>({ max: 5000 })
 metrics.trackCache('wordpressProxy', cacheStorage)
 
 export class Clients extends IOClients {
-  public get provider() {
-    return this.getOrSet('provider', Provider)
+  public get getnet() {
+    return this.getOrSet('getnet', Getnet)
   }
 }
 

@@ -33,7 +33,7 @@ const getPersistedAuthorizationResponse = async (
     true
   )
 
-export default class TestSuiteApprover extends PaymentProvider {
+export default class GetnetConnector extends PaymentProvider {
   // This class needs modifications to pass the test suit.
   // Refer to https://help.vtex.com/en/tutorial/payment-provider-protocol#4-testing
   // in order to learn about the protocol and make the according changes.

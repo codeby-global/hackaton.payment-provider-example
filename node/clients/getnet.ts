@@ -1,15 +1,10 @@
-/* eslint-disable @typescript-eslint/consistent-type-imports */
 import { ExternalClient, InstanceOptions, IOContext } from '@vtex/api'
 
-const TEST_URL = 'http://checkout-test.adyen.com' as const
+const GETNET_BASE_URL = 'https://api-homologacao.getnet.com.br/v1/mgm/'
 
-export default class Provider extends ExternalClient {
+export default class Getnet extends ExternalClient {
   constructor(protected context: IOContext, options?: InstanceOptions) {
-    super('', context, options)
-  }
-
-  private getEndpoint(settings: any) {
-    return this.context.production ? settings.productionAPI : TEST_URL
+    super(GETNET_BASE_URL, context, options)
   }
 
   public async capture({
@@ -18,12 +13,12 @@ export default class Provider extends ExternalClient {
     settings,
   }: any): Promise<AdyenCaptureResponse | null> {
     return this.http.post(
-      `${this.getEndpoint(settings)}/v67/payments/${pspReference}/captures
+      `/v67/payments/${pspReference}/captures
         `,
       data,
       {
         headers: {
-          'X-API-Key': settings.apiKey,
+          'X-API-Key': settings.getnetBackofficeClientId,
           'X-Vtex-Use-Https': 'true',
           'Content-Type': 'application/json',
         },
@@ -37,18 +32,14 @@ export default class Provider extends ExternalClient {
     data: AdyenCancelRequest,
     appSettings: AppSettings
   ): Promise<AdyenCancelResponse | null> {
-    return this.http.post(
-      `${this.getEndpoint(appSettings)}/v67/payments/${pspReference}/cancels`,
-      data,
-      {
-        headers: {
-          'X-API-Key': appSettings.apiKey,
-          'X-Vtex-Use-Https': 'true',
-          'Content-Type': 'application/json',
-        },
-        metric: 'connectorAdyen-cancel',
-      }
-    )
+    return this.http.post(`/v67/payments/${pspReference}/cancels`, data, {
+      headers: {
+        'X-API-Key': appSettings.getnetBackofficeClientId,
+        'X-Vtex-Use-Https': 'true',
+        'Content-Type': 'application/json',
+      },
+      metric: 'connectorAdyen-cancel',
+    })
   }
 
   public async refund({
@@ -57,12 +48,12 @@ export default class Provider extends ExternalClient {
     settings,
   }: AdyenRefundRequest): Promise<AdyenRefundResponse | null> {
     return this.http.post(
-      `${this.getEndpoint(settings)}/v67/payments/${pspReference}/refunds
+      `/v67/payments/${pspReference}/refunds
     `,
       data,
       {
         headers: {
-          'X-API-Key': settings.apiKey,
+          'X-API-Key': settings.getnetBackofficeClientId,
           'X-Vtex-Use-Https': 'true',
           'Content-Type': 'application/json',
         },
