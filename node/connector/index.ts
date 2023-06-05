@@ -1,42 +1,49 @@
 import {
   AuthorizationRequest,
   AuthorizationResponse,
+  Authorizations,
   CancellationRequest,
   CancellationResponse,
   Cancellations,
+  CardAuthorization,
   PaymentProvider,
+  PendingAuthorization,
+  RedirectResponse,
   RefundRequest,
   RefundResponse,
   Refunds,
   SettlementRequest,
   SettlementResponse,
   Settlements,
+  isCardAuthorization,
 } from '@vtex/payment-provider'
-import { VBase } from '@vtex/api'
 
 import { randomString } from '../utils'
 import { executeAuthorization } from '../flow'
+import {
+  getPersistedAuthorizationResponse,
+  persistAuthorizationResponse,
+} from '../utils/vbaseFunctions'
+import { Clients } from '../clients'
+import {
+  GETNET_AUTHORIZATION_BUCKET,
+  GETNET_REQUEST_BUCKET,
+} from '../utils/constants'
 
-const authorizationsBucket = 'authorizations'
-const persistAuthorizationResponse = async (
-  vbase: VBase,
-  resp: AuthorizationResponse
-) => vbase.saveJSON(authorizationsBucket, resp.paymentId, resp)
+const APP_ID = process.env.VTEX_APP_ID as string
 
-const getPersistedAuthorizationResponse = async (
-  vbase: VBase,
-  req: AuthorizationRequest
-) =>
-  vbase.getJSON<AuthorizationResponse | undefined>(
-    authorizationsBucket,
-    req.paymentId,
-    true
-  )
+const TRUE_NULL_IF_NOT_FOUND = true
 
-export default class GetnetConnector extends PaymentProvider {
-  // This class needs modifications to pass the test suit.
-  // Refer to https://help.vtex.com/en/tutorial/payment-provider-protocol#4-testing
-  // in order to learn about the protocol and make the according changes.
+export default class GetnetConnector extends PaymentProvider<Clients> {
+  public async getAppSettings() {
+    const {
+      clients: { apps },
+    } = this.context
+
+    const settings: AppSettings = await apps.getAppSettings(APP_ID)
+
+    return settings
+  }
 
   private async saveAndRetry(
     req: AuthorizationRequest,
@@ -64,7 +71,102 @@ export default class GetnetConnector extends PaymentProvider {
       )
     }
 
-    throw new Error('Not implemented')
+    const {
+      clients: { getnet, vbase },
+      vtex: { logger },
+    } = this.context
+
+    const settings = await this.getAppSettings()
+    const existingAuthorization = await vbase.getJSON<any | null>(
+      GETNET_AUTHORIZATION_BUCKET,
+      authorization.paymentId,
+      TRUE_NULL_IF_NOT_FOUND
+    )
+
+    logger.info({
+      message: 'connectorGetnet-paymentRequest',
+      data: { authorization, existingAuthorization },
+    })
+
+    if (existingAuthorization) {
+      const [
+        {
+          NotificationRequestItem: { pspReference, reason, success },
+        },
+      ] = existingAuthorization.notificationItems
+
+      if (success === 'true') {
+        return Authorizations.approveCard(authorization as CardAuthorization, {
+          tid: pspReference,
+          authorizationId: pspReference,
+        })
+      }
+
+      if (success === 'false') {
+        return Authorizations.deny(authorization, {
+          message: reason,
+        })
+      }
+    }
+
+    if (!isCardAuthorization(authorization)) {
+      return Authorizations.deny(authorization, {
+        message: 'Payment method not supported',
+      })
+    }
+
+    await vbase.saveJSON<AuthorizationRequest | null>(
+      GETNET_REQUEST_BUCKET,
+      authorization.paymentId,
+      authorization
+    )
+
+    const getnetPaymentRequest = await getnet.buildPaymentRequest({
+      ctx: this.context,
+      authorization,
+      settings,
+    })
+
+    let getnetResponse = null
+
+    try {
+      getnetResponse = await getnet.payment(getnetPaymentRequest)
+    } catch (error) {
+      logger.error({
+        error,
+        message: 'connectorGetnet-getnetPaymentRequestError',
+        data: getnetPaymentRequest.data,
+      })
+    }
+
+    if (!getnetResponse) {
+      return Authorizations.deny(authorization as CardAuthorization, {
+        message: 'No Getnet Payment response',
+      })
+    }
+
+    const { resultCode, pspReference, refusalReason } = getnetResponse
+
+    if (getnetResponse.action?.url) {
+      return {
+        paymentId: authorization.paymentId,
+        status: 'undefined',
+        redirectUrl: getnetResponse.action.url,
+      } as RedirectResponse
+    }
+
+    if (['Error', 'Refused', 'Cancelled'].includes(resultCode)) {
+      return Authorizations.deny(authorization as CardAuthorization, {
+        tid: pspReference,
+        message: refusalReason,
+      })
+    }
+
+    return {
+      paymentId: authorization.paymentId,
+      status: 'undefined',
+      tid: pspReference,
+    } as PendingAuthorization
   }
 
   public async cancel(
