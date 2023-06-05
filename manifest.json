@@ -1,7 +1,7 @@
 {
   "name": "hackaton-payment-provider",
   "vendor": "vtexdayhackathon7",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "title": "Hackaton Payment Provider",
   "description": "Hackaton Payment Provider",
   "builders": {
