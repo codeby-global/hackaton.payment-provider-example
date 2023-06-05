@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@vtex/clients": "^2.21.0",
     "@vtex/payment-provider": "^1.4.0",
     "axios": "^0.21.1",
     "co-body": "^6.0.0",
