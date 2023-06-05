@@ -18,7 +18,7 @@ import {
   isCardAuthorization,
 } from '@vtex/payment-provider'
 
-import { randomString } from '../utils'
+import { randomString } from '../utils/utils'
 import { executeAuthorization } from '../flow'
 import {
   getPersistedAuthorizationResponse,

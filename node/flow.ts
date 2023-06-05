@@ -7,7 +7,7 @@ import {
   Authorizations,
 } from '@vtex/payment-provider'
 
-import { randomString, randomUrl } from './utils'
+import { randomString, randomUrl } from './utils/utils'
 
 type Flow =
   | 'Authorize'
