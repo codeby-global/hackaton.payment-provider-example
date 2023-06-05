@@ -23,15 +23,15 @@ const handleSplit = async (
   if (!recipients.length) return undefined
 
   const {
-    clients: { platforms },
+    // clients: { platforms },
     vtex: { logger },
   } = ctx
 
   const sellerIds = recipients.map(recipient => recipient.id)
-  let accounts: any = null
+  const accounts: any = null
 
   try {
-    accounts = await platforms.getAccounts(ctx, sellerIds)
+    // accounts = await platforms.getAccounts(ctx, sellerIds)
   } catch (error) {
     logger.error({
       error,

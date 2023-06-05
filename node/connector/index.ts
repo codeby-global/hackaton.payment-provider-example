@@ -27,12 +27,12 @@ import {
 import { Clients } from '../clients'
 import {
   GETNET_AUTHORIZATION_BUCKET,
-  GETNET_CANCELLATION_BUCKET,
-  GETNET_CAPTURE_BUCKET,
-  GETNET_REFUND_BUCKET,
+  // GETNET_CANCELLATION_BUCKET,
+  // GETNET_CAPTURE_BUCKET,
+  // GETNET_REFUND_BUCKET,
   GETNET_REQUEST_BUCKET,
 } from '../utils/constants'
-import { getnetService } from '../services/getnetService'
+// import { getnetService } from '../services/getnetService'
 
 const APP_ID = process.env.VTEX_APP_ID as string
 
@@ -182,6 +182,9 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       })
     }
 
+    throw new Error('Method not implemented!')
+
+    /*
     const {
       clients: { getnet, vbase },
       vtex: { logger },
@@ -275,6 +278,7 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       code: null,
       message: null,
     }
+    */
   }
 
   public async refund(refund: RefundRequest): Promise<RefundResponse> {
@@ -282,6 +286,9 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       return Refunds.deny(refund)
     }
 
+    throw new Error('Method not implemented!')
+
+    /*
     const {
       clients: { getnet, vbase },
       vtex: { logger },
@@ -377,6 +384,7 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       code: null,
       message: null,
     }
+    */
   }
 
   public async settle(
@@ -386,6 +394,9 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       return Settlements.deny(settlement)
     }
 
+    throw new Error('Method not implemented!')
+
+    /*
     const {
       clients: { getnet, vbase },
       vtex: { logger },
@@ -481,6 +492,7 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       message: null,
       settleId: null,
     }
+    */
   }
 
   public inbound: undefined

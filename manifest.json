@@ -22,8 +22,8 @@
     {
       "name": "outbound-access",
       "attrs": {
-        "host": "heimdall.vtexpayments.com.br",
-        "path": "/api/payment-provider/callback/*"
+        "host": "api-homologacao.getnet.com.br",
+        "path": "*"
       }
     }
   ],
