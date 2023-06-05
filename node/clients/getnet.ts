@@ -1,14 +1,15 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import { ExternalClient, InstanceOptions, IOContext } from '@vtex/api'
 import { OrderDetailResponse } from '@vtex/clients'
-import { AuthorizationRequest } from '@vtex/payment-provider'
 import { v4 as uuidv4 } from 'uuid'
+import axios from 'axios'
 
 const GETNET_BASE_URL = 'https://api-homologacao.getnet.com.br'
 
 const ROUTES = {
   auth: `/auth/oauth/v2/token?grant_type=client_credentials`,
   payments: `/v2/payments`,
+  getPayment: (paymentId: string) => `v1/payments/info/${paymentId}`,
 }
 
 export default class Getnet extends ExternalClient {
@@ -30,17 +31,110 @@ export default class Getnet extends ExternalClient {
     })
   }
 
+  public async getPayment({
+    settings,
+    paymentId,
+  }: {
+    settings: AppSettings
+    paymentId: string
+  }) {
+    const { access_token: accessToken } = await this.auth(settings)
+
+    return this.http.get(ROUTES.getPayment(paymentId), {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+  }
+
   public async payment({
     settings,
     authorization,
     orderData,
   }: {
     settings: AppSettings
-    authorization: AuthorizationRequest
+    authorization: any
     orderData: OrderDetailResponse
   }): Promise<any | null> {
     const { access_token: accessToken } = await this.auth(settings)
 
+    return axios.post(
+      authorization.secureProxyUrl,
+      {
+        idempotency_key: uuidv4(),
+        request_id: 'ANY REQUEST ID',
+        order_id: orderData.orderId,
+        data: {
+          amount: orderData.value * 100,
+          currency: orderData.storePreferencesData.currencyCode,
+          customer_id: orderData.clientProfileData.userProfileId,
+          payment: {
+            payment_id: authorization.transactionId,
+            payment_method: 'CREDIT_AUTHORIZATION',
+            save_card_data: false,
+            transaction_type: 'FULL',
+            number_installments: 1,
+            soft_descriptor: 'LOJA*TESTE*COMPRA-123',
+            dynamic_mcc: 1799,
+            card: {
+              number: authorization.card.numberToken,
+              expiration_month: authorization.card.expiration.month,
+              expiration_year: authorization.card.expiration.year,
+              cardholder_name: `${authorization.miniCart.buyer.firstName} ${authorization.miniCart.buyer.lastName}`,
+              security_code: authorization.card.cscToken,
+              brand: authorization.paymentMethod,
+            },
+          },
+          sub_merchant: {
+            identification_code: 9058345,
+            document_type: 'CNPJ',
+            document_number: 77415914000148,
+            address: 'Torre Negra, 207',
+            city: 'Cidade',
+            state: 'RS',
+            postal_code: 90520000,
+          },
+          additional_data: {
+            split: {
+              subseller_list_payment: [
+                {
+                  subseller_id: 'HACKKKK',
+                  document_type: 'CNPJ',
+                  document_number: '12345678912',
+                  subseller_sale_amount: 118708,
+                  items: [
+                    {
+                      id: 'MR1',
+                      description: 'Produto MR1.',
+                      amount: 118708,
+                      transaction_rate_percent: 1.2,
+                    },
+                  ],
+                },
+              ],
+            },
+            customer: {
+              first_name: orderData.clientProfileData.firstName,
+              last_name: orderData.clientProfileData.lastName,
+              name: `${orderData.clientProfileData.firstName} ${orderData.clientProfileData.lastName}`,
+              document_type: orderData.clientProfileData.documentType,
+              document_number: orderData.clientProfileData.document,
+              email: orderData.clientProfileData.email,
+              phone_number: orderData.clientProfileData.phone,
+            },
+          },
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-type': 'application/json; charset=utf-8',
+          'X-PROVIDER-Forward-To': `${GETNET_BASE_URL}${ROUTES.payments}`,
+        },
+      }
+    )
+
+    /*
     return this.http.post(
       ROUTES.payments,
       {
@@ -115,6 +209,7 @@ export default class Getnet extends ExternalClient {
         },
       }
     )
+    */
   }
 
   /*

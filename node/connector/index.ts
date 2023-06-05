@@ -134,24 +134,22 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
 
     const settings = await this.getAppSettings()
 
-    let getnetResponse = null
+    await getnet.payment({
+      settings,
+      authorization,
+      orderData,
+    })
 
-    try {
-      getnetResponse = await getnet.payment({
-        settings,
-        authorization,
-        orderData,
-      })
-    } catch (error) {
-      logger.error({
-        error,
-        message: 'connectorGetnet-getnetPaymentRequestError',
-        data: getnetResponse,
-      })
-    }
+    const getnetResponse = await getnet.getPayment({
+      settings,
+      paymentId: authorization.transactionId,
+    })
 
     // eslint-disable-next-line no-console
-    console.log('===========> orderData', orderData)
+    console.log('===========> authorization', authorization)
+
+    // eslint-disable-next-line no-console
+    console.log('===========> getnetResponse', getnetResponse)
 
     if (Math.random() < 10) {
       throw new Error('TEMP')
