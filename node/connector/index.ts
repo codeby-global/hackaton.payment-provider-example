@@ -80,7 +80,6 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       vtex: { logger },
     } = this.context
 
-    const settings = await this.getAppSettings()
     const existingAuthorization = await vbase.getJSON<any | null>(
       GETNET_AUTHORIZATION_BUCKET,
       authorization.paymentId,
@@ -125,21 +124,17 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       authorization
     )
 
-    const getnetPaymentRequest = await getnet.buildPaymentRequest({
-      ctx: this.context,
-      authorization,
-      settings,
-    })
+    const settings = await this.getAppSettings()
 
     let getnetResponse = null
 
     try {
-      getnetResponse = await getnet.payment(getnetPaymentRequest)
+      getnetResponse = await getnet.payment({ settings })
     } catch (error) {
       logger.error({
         error,
         message: 'connectorGetnet-getnetPaymentRequestError',
-        data: getnetPaymentRequest.data,
+        data: getnetResponse,
       })
     }
 
@@ -165,6 +160,9 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
         message: refusalReason,
       })
     }
+
+    // eslint-disable-next-line no-console
+    console.log('======> 18')
 
     return {
       paymentId: authorization.paymentId,

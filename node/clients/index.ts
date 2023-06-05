@@ -1,9 +1,14 @@
-import type { ClientsConfig } from '@vtex/api'
-import { IOClients, LRUCache } from '@vtex/api'
+import { ClientsConfig, IOClients, LRUCache } from '@vtex/api'
 import { vbaseFor } from '@vtex/clients'
 
 import Getnet from './getnet'
-import { GETNET_AUTHORIZATION_BUCKET, GETNET_CANCELLATION_BUCKET, GETNET_CAPTURE_BUCKET, GETNET_REFUND_BUCKET, GETNET_REQUEST_BUCKET } from '../utils/constants'
+import {
+  GETNET_AUTHORIZATION_BUCKET,
+  GETNET_CANCELLATION_BUCKET,
+  GETNET_CAPTURE_BUCKET,
+  GETNET_REFUND_BUCKET,
+  GETNET_REQUEST_BUCKET,
+} from '../utils/constants'
 
 const TWO_RETRIES = 2
 const TIMEOUT_MS = 15000
@@ -48,7 +53,6 @@ export class Clients extends IOClients {
   public get getnetCapture() {
     return this.getOrSet('getnetCapture', GetnetCapture)
   }
-
 }
 
 export const clients: ClientsConfig<Clients> = {
