@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import { ExternalClient, InstanceOptions, IOContext } from '@vtex/api'
+import { OrderDetailResponse } from '@vtex/clients'
+import { AuthorizationRequest } from '@vtex/payment-provider'
 import { v4 as uuidv4 } from 'uuid'
 
 const GETNET_BASE_URL = 'https://api-homologacao.getnet.com.br'
@@ -28,7 +30,15 @@ export default class Getnet extends ExternalClient {
     })
   }
 
-  public async payment({ settings }: any): Promise<any | null> {
+  public async payment({
+    settings,
+    authorization,
+    orderData,
+  }: {
+    settings: AppSettings
+    authorization: AuthorizationRequest
+    orderData: OrderDetailResponse
+  }): Promise<any | null> {
     const { access_token: accessToken } = await this.auth(settings)
 
     return this.http.post(
@@ -36,14 +46,14 @@ export default class Getnet extends ExternalClient {
       {
         idempotency_key: uuidv4(),
         request_id: 'ANY REQUEST ID',
-        order_id: 'ANY ORDER ID',
+        order_id: orderData.orderId,
         data: {
-          amount: 118708,
-          currency: 'BRL',
-          customer_id: 'teste',
+          amount: orderData.value * 100,
+          currency: orderData.storePreferencesData.currencyCode,
+          customer_id: orderData.clientProfileData.userProfileId,
           payment: {
-            payment_id: '173f9e8d-4e0b-4503-8016-5cdafba89bee',
-            payment_method: 'CREDIT',
+            payment_id: authorization.transactionId,
+            payment_method: 'CREDIT_AUTHORIZATION',
             save_card_data: false,
             transaction_type: 'FULL',
             number_installments: 1,
@@ -87,13 +97,13 @@ export default class Getnet extends ExternalClient {
               ],
             },
             customer: {
-              first_name: 'João',
-              last_name: 'da Silva',
-              name: 'João da Silva',
-              document_type: 'CPF',
-              document_number: '12345678912',
-              email: 'customer@email.com.br',
-              phone_number: '5551999887766',
+              first_name: orderData.clientProfileData.firstName,
+              last_name: orderData.clientProfileData.lastName,
+              name: `${orderData.clientProfileData.firstName} ${orderData.clientProfileData.lastName}`,
+              document_type: orderData.clientProfileData.documentType,
+              document_number: orderData.clientProfileData.document,
+              email: orderData.clientProfileData.email,
+              phone_number: orderData.clientProfileData.phone,
             },
           },
         },

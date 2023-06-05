@@ -25,6 +25,19 @@
         "host": "api-homologacao.getnet.com.br",
         "path": "*"
       }
+    },
+    {
+      "name": "outbound-access",
+      "attrs": {
+        "host": "portal.vtexcommercestable.com.br",
+        "path": "/api/oms/pvt/orders/*"
+      }
+    },
+    {
+      "name": "OMSViewer"
+    },
+    {
+      "name": "ADMIN_DS"
     }
   ],
   "settingsSchema": {

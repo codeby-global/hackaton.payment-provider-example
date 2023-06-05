@@ -76,7 +76,7 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
     }
 
     const {
-      clients: { getnet, vbase },
+      clients: { getnet, vbase, oms },
       vtex: { logger },
     } = this.context
 
@@ -124,18 +124,37 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       authorization
     )
 
+    const orderData = await oms.order(`${authorization.orderId}-01`)
+
+    if (!orderData) {
+      return Authorizations.deny(authorization, {
+        message: 'Order not found',
+      })
+    }
+
     const settings = await this.getAppSettings()
 
     let getnetResponse = null
 
     try {
-      getnetResponse = await getnet.payment({ settings })
+      getnetResponse = await getnet.payment({
+        settings,
+        authorization,
+        orderData,
+      })
     } catch (error) {
       logger.error({
         error,
         message: 'connectorGetnet-getnetPaymentRequestError',
         data: getnetResponse,
       })
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('===========> orderData', orderData)
+
+    if (Math.random() < 10) {
+      throw new Error('TEMP')
     }
 
     if (!getnetResponse) {

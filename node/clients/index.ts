@@ -1,5 +1,5 @@
 import { ClientsConfig, IOClients, LRUCache } from '@vtex/api'
-import { vbaseFor } from '@vtex/clients'
+import { OMS, vbaseFor } from '@vtex/clients'
 
 import Getnet from './getnet'
 import {
@@ -52,6 +52,10 @@ export class Clients extends IOClients {
 
   public get getnetCapture() {
     return this.getOrSet('getnetCapture', GetnetCapture)
+  }
+
+  public get oms() {
+    return this.getOrSet('oms', OMS)
   }
 }
 
