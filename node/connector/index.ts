@@ -27,6 +27,7 @@ import {
 import { Clients } from '../clients'
 import {
   GETNET_AUTHORIZATION_BUCKET,
+  GETNET_CANCELLATION_BUCKET,
   GETNET_REQUEST_BUCKET,
 } from '../utils/constants'
 
@@ -178,7 +179,99 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       })
     }
 
-    throw new Error('Not implemented')
+    const {
+      clients: { getnet, vbase },
+      vtex: { logger },
+    } = this.context
+
+    const existingCancellation = await vbase.getJSON<any | null>(
+      GETNET_CANCELLATION_BUCKET,
+      cancellation.paymentId,
+      TRUE_NULL_IF_NOT_FOUND
+    )
+
+    logger.info({
+      message: 'connectorGetnet-cancelRequest',
+      data: { cancellation, existingCancellation },
+    })
+
+    if (existingCancellation) {
+      if (existingCancellation.notification) {
+        const [
+          {
+            NotificationRequestItem: {
+              pspReference,
+              eventCode,
+              reason,
+              success,
+            },
+          },
+        ] = existingCancellation.notification.notificationItems
+
+        if (success === 'true') {
+          return Cancellations.approve(cancellation, {
+            cancellationId: pspReference,
+          })
+        }
+
+        return Cancellations.deny(cancellation, {
+          code: eventCode,
+          message: reason,
+        })
+      }
+
+      return {
+        ...cancellation,
+        cancellationId: null,
+        code: null,
+        message: null,
+      }
+    }
+
+    vbase.saveJSON<any>(GETNET_CANCELLATION_BUCKET, cancellation.paymentId, {
+      notification: null,
+    })
+
+    if (!cancellation.authorizationId) {
+      logger.error({
+        message: 'connectorGetnet-authorizationIdMissing',
+        data: { cancellation },
+      })
+
+      throw new Error('Transaction not found')
+    }
+
+    const settings = await this.getAppSettings()
+
+    try {
+      await getnet.cancel(
+        cancellation.authorizationId,
+        {
+          merchantAccount: settings.getnetBackofficeClientId,
+          reference: cancellation.paymentId,
+        },
+        settings
+      )
+    } catch (error) {
+      logger.error({
+        error,
+        message: 'connectorGetnet-getnetCancelRequestError',
+        data: {
+          pspReference: cancellation.authorizationId,
+          request: {
+            merchantAccount: settings.getnetBackofficeClientId,
+            reference: cancellation.paymentId,
+          },
+        },
+      })
+    }
+
+    return {
+      ...cancellation,
+      cancellationId: null,
+      code: null,
+      message: null,
+    }
   }
 
   public async refund(refund: RefundRequest): Promise<RefundResponse> {
