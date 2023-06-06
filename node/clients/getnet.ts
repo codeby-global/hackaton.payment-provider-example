@@ -28,9 +28,6 @@ export default class Getnet extends ExternalClient {
 
     const authTokenBase64 = Buffer.from(authToken).toString('base64')
 
-    // eslint-disable-next-line no-console
-    console.log('====> authTokenBase64', authTokenBase64)
-
     const authResponse = await this.http.post<any>(ROUTES.auth, null, {
       headers: {
         Authorization: `Basic ${authTokenBase64}`,
@@ -96,7 +93,7 @@ export default class Getnet extends ExternalClient {
           card: {
             number: authorization.card.numberToken,
             expiration_month: authorization.card.expiration.month,
-            expiration_year: authorization.card.expiration.year,
+            expiration_year: `${authorization.card.expiration.year[2]}${authorization.card.expiration.year[3]}`,
             cardholder_name: `${authorization.miniCart.buyer.firstName} ${authorization.miniCart.buyer.lastName}`,
             security_code: authorization.card.cscToken,
             brand: authorization.paymentMethod,
@@ -118,12 +115,12 @@ export default class Getnet extends ExternalClient {
                 subseller_id: 'HACKKKK',
                 document_type: 'CNPJ',
                 document_number: '12345678912',
-                subseller_sale_amount: 118708,
+                subseller_sale_amount: orderData.value * 100,
                 items: [
                   {
                     id: 'MR1',
                     description: 'Produto MR1.',
-                    amount: 118708,
+                    amount: orderData.value * 100,
                     transaction_rate_percent: 1.2,
                   },
                 ],
@@ -147,10 +144,8 @@ export default class Getnet extends ExternalClient {
       return axios.post(authorization.secureProxyUrl, payload, {
         headers: {
           'X-PROVIDER-Forward-Authorization': `Bearer ${this.authToken}`,
-          'X-PROVIDER-Forward-To': `${GETNET_BASE_URL}${ROUTES.payments}`,
           'X-PROVIDER-Forward-Content-Type': 'application/json',
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
+          'X-PROVIDER-Forward-To': `${GETNET_BASE_URL}${ROUTES.payments}`,
         },
       })
     } catch (err) {

@@ -60,6 +60,9 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
   public async authorize(
     authorization: AuthorizationRequest
   ): Promise<AuthorizationResponse> {
+    // eslint-disable-next-line no-console
+    console.log('=======> authorization!!!', authorization)
+
     if (this.isTestSuite) {
       const persistedResponse = await getPersistedAuthorizationResponse(
         this.context.clients.vbase,
@@ -146,7 +149,7 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
 
     const getnetResponse = await getnet.getPayment({
       settings,
-      paymentId: paymentData.payment_id,
+      paymentId: paymentData.data.payment_id,
     })
 
     // eslint-disable-next-line no-console
@@ -167,14 +170,6 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       details,
     } = getnetResponse
 
-    if (records[0] && records[0].href) {
-      return {
-        paymentId: authorization.paymentId,
-        status: 'undefined',
-        redirectUrl: records[0].href,
-      } as RedirectResponse
-    }
-
     if (status === 'APPROVED') {
       return Authorizations.approveCard(authorization as CardAuthorization, {
         tid: paymentId,
@@ -187,6 +182,14 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
         tid: paymentId,
         message,
       })
+    }
+
+    if (records[0] && records[0].href) {
+      return {
+        paymentId: authorization.paymentId,
+        status: 'undefined',
+        redirectUrl: records[0].href,
+      } as RedirectResponse
     }
 
     return {
