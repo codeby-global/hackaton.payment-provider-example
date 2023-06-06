@@ -17,7 +17,6 @@ import {
   Settlements,
   isCardAuthorization,
 } from '@vtex/payment-provider'
-import { v4 as uuidv4 } from 'uuid'
 
 import { randomString } from '../utils/utils'
 import { executeAuthorization } from '../flow'
@@ -28,8 +27,8 @@ import {
 import { Clients } from '../clients'
 import {
   GETNET_AUTHORIZATION_BUCKET,
-  // GETNET_CANCELLATION_BUCKET,
-  // GETNET_CAPTURE_BUCKET,
+  GETNET_CANCELLATION_BUCKET,
+  GETNET_CAPTURE_BUCKET,
   // GETNET_REFUND_BUCKET,
   GETNET_REQUEST_BUCKET,
 } from '../utils/constants'
@@ -135,13 +134,11 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
 
     const settings = await this.getAppSettings()
 
-    const paymentIdToCreate = uuidv4()
-
     const paymentData = await getnet.payment({
       settings,
       authorization,
       orderData,
-      paymentId: paymentIdToCreate,
+      paymentId: authorization.transactionId,
     })
 
     // eslint-disable-next-line no-console
@@ -208,9 +205,6 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       })
     }
 
-    throw new Error('Method not implemented!')
-
-    /*
     const {
       clients: { getnet, vbase },
       vtex: { logger },
@@ -276,14 +270,7 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
     const settings = await this.getAppSettings()
 
     try {
-      await getnet.cancel(
-        cancellation.authorizationId,
-        {
-          merchantAccount: settings.getnetTransationalClientId,
-          reference: cancellation.paymentId,
-        },
-        settings
-      )
+      await getnet.cancel(cancellation.transactionId, settings)
     } catch (error) {
       logger.error({
         error,
@@ -304,7 +291,6 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       code: null,
       message: null,
     }
-    */
   }
 
   public async refund(refund: RefundRequest): Promise<RefundResponse> {
@@ -420,9 +406,6 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       return Settlements.deny(settlement)
     }
 
-    throw new Error('Method not implemented!')
-
-    /*
     const {
       clients: { getnet, vbase },
       vtex: { logger },
@@ -493,21 +476,17 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       throw new Error('Missing transaction data')
     }
 
-    const getnetCaptureRequest = await getnetService.buildCaptureRequest({
-      ctx: this.context,
-      settlement,
-      authorization: getnetAuth,
-    })
+    const settings = await this.getAppSettings()
 
     try {
-      await getnet.capture(getnetCaptureRequest)
+      await getnet.capture(settlement.paymentId, settings)
     } catch (error) {
       logger.error({
         error,
         message: 'connectorGetnet-getnetSettleRequestError',
         data: {
-          pspReference: getnetCaptureRequest.pspReference,
-          request: getnetCaptureRequest.data,
+          pspReference: settlement.authorizationId,
+          request: settlement.paymentId,
         },
       })
     }
@@ -518,7 +497,6 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       message: null,
       settleId: null,
     }
-    */
   }
 
   public inbound: undefined
