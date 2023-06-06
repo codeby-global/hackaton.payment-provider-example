@@ -138,28 +138,54 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       })
     }
 
+    const recipientsFormatted = (authorization.recipients as any[])?.map(
+      ({ id, amount, document, documentType, commissionAmount = 100 }) => {
+        return {
+          subseller_id: id,
+          document_type: documentType,
+          document_number: document,
+          subseller_sale_amount: Math.floor(
+            (amount * 100) / (commissionAmount / 100)
+          ),
+          items: orderData.items.map(item => ({
+            id: item.id,
+            description: item.name,
+            amount: Math.floor((item.price / (commissionAmount / 100)) * 100),
+            transaction_rate_percent: commissionAmount,
+          })),
+        }
+      }
+    )
+
+    // eslint-disable-next-line no-console
+    console.log(
+      '=======> recipientsFormatted!!!',
+      JSON.stringify(recipientsFormatted, null, 2)
+    )
+
     const settings = await this.getAppSettings()
 
     let paymentData = null
+    let getnetResponse = null
 
     try {
       paymentData = await getnet.payment({
         settings,
-        authorization,
+        authorization: {
+          ...authorization,
+          recipients: recipientsFormatted,
+        },
         orderData,
         paymentId: authorization.transactionId,
+      })
+
+      getnetResponse = await getnet.getPayment({
+        settings,
+        paymentId: paymentData.data.payment_id,
       })
     } catch (err) {
       console.error(err)
     }
-
-    // eslint-disable-next-line no-console
-    console.log('===========> paymentData', paymentData)
-
-    const getnetResponse = await getnet.getPayment({
-      settings,
-      paymentId: paymentData.data.payment_id,
-    })
 
     // eslint-disable-next-line no-console
     console.log('===========> getnetResponse', getnetResponse)
