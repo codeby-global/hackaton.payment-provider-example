@@ -1,7 +1,9 @@
 import { PaymentProviderService } from '@vtex/payment-provider'
+import { method } from '@vtex/api'
 
 import GetnetConnector from './connector'
 import { Clients } from './clients'
+import { getnetMailApprove } from './middlewares/getnetMailApprove'
 
 export default new PaymentProviderService({
   clients: {
@@ -14,4 +16,9 @@ export default new PaymentProviderService({
     },
   },
   connector: GetnetConnector,
+  routes: {
+    getnetMailApprove: method({
+      GET: [getnetMailApprove],
+    }),
+  },
 })

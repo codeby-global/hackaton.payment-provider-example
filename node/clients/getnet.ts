@@ -32,6 +32,7 @@ export default class Getnet extends ExternalClient {
       headers: {
         Authorization: `Basic ${authTokenBase64}`,
       },
+      metric: 'connectorGetnet-auth',
     })
 
     this.authToken = authResponse.access_token
@@ -55,6 +56,7 @@ export default class Getnet extends ExternalClient {
         Authorization: `Bearer ${this.authToken}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        metric: 'connectorGetnet-getPayment',
       },
     })
   }
@@ -149,8 +151,7 @@ export default class Getnet extends ExternalClient {
         },
       })
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.log(JSON.stringify(err, null, 2))
+      console.error(JSON.stringify(err, null, 2))
     }
   }
 
@@ -171,7 +172,7 @@ export default class Getnet extends ExternalClient {
           Authorization: `Bearer ${this.authToken}`,
           'Content-type': 'application/json; charset=utf-8',
         },
-        metric: 'connectorAdyen-cancel',
+        metric: 'connectorGetnet-capture',
       }
     )
   }
@@ -196,7 +197,7 @@ export default class Getnet extends ExternalClient {
           Authorization: `Bearer ${this.authToken}`,
           'Content-type': 'application/json; charset=utf-8',
         },
-        metric: 'connectorAdyen-cancel',
+        metric: 'connectorGetnet-cancel',
       }
     )
   }
@@ -206,7 +207,7 @@ export default class Getnet extends ExternalClient {
     pspReference,
     data,
     settings,
-  }: AdyenRefundRequest): Promise<AdyenRefundResponse | null> {
+  }: GetnetRefundRequest): Promise<GetnetRefundResponse | null> {
     return this.http.post(
       `/v67/payments/${pspReference}/refunds
     `,
@@ -217,7 +218,7 @@ export default class Getnet extends ExternalClient {
           'X-Vtex-Use-Https': 'true',
           'Content-Type': 'application/json',
         },
-        metric: 'connectorAdyen-refund',
+        metric: 'connectorGetnet-refund',
       }
     )
   }

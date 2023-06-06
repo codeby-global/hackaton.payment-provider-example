@@ -60,12 +60,6 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
   public async authorize(
     authorization: AuthorizationRequest
   ): Promise<AuthorizationResponse> {
-    // eslint-disable-next-line no-console
-    console.log(
-      '=======> authorization!!!',
-      JSON.stringify(authorization, null, 2)
-    )
-
     if (this.isTestSuite) {
       const persistedResponse = await getPersistedAuthorizationResponse(
         this.context.clients.vbase,
@@ -82,7 +76,7 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
     }
 
     const {
-      clients: { getnet, vbase, oms },
+      clients: { getnet, vbase, oms, mail },
       vtex: { logger },
     } = this.context
 
@@ -157,12 +151,6 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       }
     )
 
-    // eslint-disable-next-line no-console
-    console.log(
-      '=======> recipientsFormatted!!!',
-      JSON.stringify(recipientsFormatted, null, 2)
-    )
-
     const settings = await this.getAppSettings()
 
     let paymentData = null
@@ -186,9 +174,6 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
     } catch (err) {
       console.error(err)
     }
-
-    // eslint-disable-next-line no-console
-    console.log('===========> getnetResponse', getnetResponse)
 
     if (!getnetResponse) {
       return Authorizations.deny(authorization as CardAuthorization, {
@@ -220,7 +205,15 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
         )
       }
 
-      return Authorizations.approveCard(authorization as CardAuthorization, {
+      await mail.sendMail({
+        templateName: 'approve-transaction',
+        jsonData: {
+          url: `https://${this.context.vtex.workspace}--${this.context.vtex.account}.myvtex.com/_v/getnet-mail-approve?callbackUrl=${authorization.callbackUrl}`,
+        },
+      })
+
+      return Authorizations.pending(authorization as CardAuthorization, {
+        delayToCancel: 100000000,
         tid: paymentId,
         authorizationId: payment.payment_id,
       })
@@ -531,7 +524,16 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
     const settings = await this.getAppSettings()
 
     try {
-      await getnet.capture(settlement.paymentId, settings)
+      const getnetResponse = await getnet.capture(
+        settlement.paymentId,
+        settings
+      )
+
+      if (getnetResponse.status === 'CAPTURED') {
+        return Settlements.approve(settlement, {
+          settleId: getnetResponse.paymentId,
+        })
+      }
     } catch (error) {
       logger.error({
         error,

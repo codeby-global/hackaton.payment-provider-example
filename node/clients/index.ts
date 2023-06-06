@@ -9,6 +9,7 @@ import {
   GETNET_REFUND_BUCKET,
   GETNET_REQUEST_BUCKET,
 } from '../utils/constants'
+import Mail from './mail'
 
 const TWO_RETRIES = 2
 const TIMEOUT_MS = 20000
@@ -52,6 +53,10 @@ export class Clients extends IOClients {
 
   public get getnetCapture() {
     return this.getOrSet('getnetCapture', GetnetCapture)
+  }
+
+  public get mail() {
+    return this.getOrSet('mail', Mail)
   }
 
   public get oms() {
