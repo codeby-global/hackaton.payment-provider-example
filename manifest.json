@@ -2,8 +2,8 @@
   "name": "hackathon-payment-provider",
   "vendor": "vtexdayhackathon7",
   "version": "0.1.1-beta.0",
-  "title": "Hackaton Payment Provider",
-  "description": "Hackaton Payment Provider",
+  "title": "Hackathon Payment Provider",
+  "description": "Hackathon Payment Provider",
   "builders": {
     "paymentProvider": "1.x",
     "node": "6.x",
