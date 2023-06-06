@@ -1,5 +1,6 @@
 {
   "name": "GetnetProvider",
+  "implementsSplit": true, 
   "paymentMethods": [
     {
       "name": "Visa",
