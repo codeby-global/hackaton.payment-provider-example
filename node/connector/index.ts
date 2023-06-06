@@ -61,7 +61,10 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
     authorization: AuthorizationRequest
   ): Promise<AuthorizationResponse> {
     // eslint-disable-next-line no-console
-    console.log('=======> authorization!!!', authorization)
+    console.log(
+      '=======> authorization!!!',
+      JSON.stringify(authorization, null, 2)
+    )
 
     if (this.isTestSuite) {
       const persistedResponse = await getPersistedAuthorizationResponse(
@@ -137,12 +140,18 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
 
     const settings = await this.getAppSettings()
 
-    const paymentData = await getnet.payment({
-      settings,
-      authorization,
-      orderData,
-      paymentId: authorization.transactionId,
-    })
+    let paymentData = null
+
+    try {
+      paymentData = await getnet.payment({
+        settings,
+        authorization,
+        orderData,
+        paymentId: authorization.transactionId,
+      })
+    } catch (err) {
+      console.error(err)
+    }
 
     // eslint-disable-next-line no-console
     console.log('===========> paymentData', paymentData)
@@ -170,21 +179,21 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       details,
     } = getnetResponse
 
-    if (status === 'APPROVED') {
+    if (['APPROVED', 'AUTHORIZED'].includes(status)) {
       return Authorizations.approveCard(authorization as CardAuthorization, {
         tid: paymentId,
         authorizationId: payment.payment_id,
       })
     }
 
-    if (details[0] && ['DENIED', 'ERROR'].includes(details[0].status)) {
+    if (details?.[0] && ['DENIED', 'ERROR'].includes(details[0].status)) {
       return Authorizations.deny(authorization as CardAuthorization, {
         tid: paymentId,
         message,
       })
     }
 
-    if (records[0] && records[0].href) {
+    if (records?.[0]?.href) {
       return {
         paymentId: authorization.paymentId,
         status: 'undefined',

@@ -3,7 +3,7 @@
   "paymentMethods": [
     {
       "name": "Visa",
-      "allowsSplit": "onCapture"
+      "allowsSplit": "onAuthorize"
     },
     {
       "name": "American Express",
