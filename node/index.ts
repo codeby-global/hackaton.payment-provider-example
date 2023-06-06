@@ -9,7 +9,7 @@ export default new PaymentProviderService({
     options: {
       default: {
         retries: 2,
-        timeout: 15000,
+        timeout: 20000,
       },
     },
   },

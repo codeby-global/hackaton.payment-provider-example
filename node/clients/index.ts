@@ -11,7 +11,7 @@ import {
 } from '../utils/constants'
 
 const TWO_RETRIES = 2
-const TIMEOUT_MS = 15000
+const TIMEOUT_MS = 20000
 
 const defaultClientOptions = {
   retries: TWO_RETRIES,

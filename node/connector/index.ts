@@ -17,6 +17,7 @@ import {
   Settlements,
   isCardAuthorization,
 } from '@vtex/payment-provider'
+import { v4 as uuidv4 } from 'uuid'
 
 import { randomString } from '../utils/utils'
 import { executeAuthorization } from '../flow'
@@ -134,26 +135,25 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
 
     const settings = await this.getAppSettings()
 
-    await getnet.payment({
+    const paymentIdToCreate = uuidv4()
+
+    const paymentData = await getnet.payment({
       settings,
       authorization,
       orderData,
+      paymentId: paymentIdToCreate,
     })
+
+    // eslint-disable-next-line no-console
+    console.log('===========> paymentData', paymentData)
 
     const getnetResponse = await getnet.getPayment({
       settings,
-      paymentId: authorization.transactionId,
+      paymentId: paymentData.payment_id,
     })
 
     // eslint-disable-next-line no-console
-    console.log('===========> authorization', authorization)
-
-    // eslint-disable-next-line no-console
     console.log('===========> getnetResponse', getnetResponse)
-
-    if (Math.random() < 10) {
-      throw new Error('TEMP')
-    }
 
     if (!getnetResponse) {
       return Authorizations.deny(authorization as CardAuthorization, {
@@ -161,30 +161,41 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
       })
     }
 
-    const { resultCode, pspReference, refusalReason } = getnetResponse
+    const {
+      status,
+      records,
+      payment_id: paymentId,
+      message,
+      payment,
+      details,
+    } = getnetResponse
 
-    if (getnetResponse.action?.url) {
+    if (records[0] && records[0].href) {
       return {
         paymentId: authorization.paymentId,
         status: 'undefined',
-        redirectUrl: getnetResponse.action.url,
+        redirectUrl: records[0].href,
       } as RedirectResponse
     }
 
-    if (['Error', 'Refused', 'Cancelled'].includes(resultCode)) {
-      return Authorizations.deny(authorization as CardAuthorization, {
-        tid: pspReference,
-        message: refusalReason,
+    if (status === 'APPROVED') {
+      return Authorizations.approveCard(authorization as CardAuthorization, {
+        tid: paymentId,
+        authorizationId: payment.payment_id,
       })
     }
 
-    // eslint-disable-next-line no-console
-    console.log('======> 18')
+    if (details[0] && ['DENIED', 'ERROR'].includes(details[0].status)) {
+      return Authorizations.deny(authorization as CardAuthorization, {
+        tid: paymentId,
+        message,
+      })
+    }
 
     return {
       paymentId: authorization.paymentId,
       status: 'undefined',
-      tid: pspReference,
+      tid: paymentId,
     } as PendingAuthorization
   }
 
