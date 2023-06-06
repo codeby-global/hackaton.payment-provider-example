@@ -180,6 +180,20 @@ export default class GetnetConnector extends PaymentProvider<Clients> {
     } = getnetResponse
 
     if (['APPROVED', 'AUTHORIZED'].includes(status)) {
+      const existingAutho = await vbase.getJSON<any | null>(
+        GETNET_CANCELLATION_BUCKET,
+        authorization.paymentId,
+        TRUE_NULL_IF_NOT_FOUND
+      )
+
+      if (!existingAutho) {
+        await vbase.saveJSON<any>(
+          GETNET_AUTHORIZATION_BUCKET,
+          authorization.paymentId,
+          { notification: null }
+        )
+      }
+
       return Authorizations.approveCard(authorization as CardAuthorization, {
         tid: paymentId,
         authorizationId: payment.payment_id,
